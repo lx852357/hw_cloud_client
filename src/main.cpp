@@ -2,20 +2,16 @@
 
 #include <iostream>
 #include <string>
-#include <ctime>
-#include <unistd.h>
-#include <string.h>
-//for socket
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
+//for socket
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include<unistd.h>
-#include <sys/termios.h>
-#include <fstream>
+
+//user defined
 #include "message.h"
 
 int sockClient;
