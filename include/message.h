@@ -3,6 +3,9 @@
 
 #include <string.h>
 #include "cJSON.h"
+#include <stdio.h>
+#include <stdlib.h>
+
 enum DIRECT
 {
 	MOVE_UP = 0,
