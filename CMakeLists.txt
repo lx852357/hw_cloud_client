@@ -19,6 +19,7 @@ add_executable(client
         ${SOURCE_DIR}/main.cpp
         ${SOURCE_DIR}/message.cpp
         ${SOURCE_DIR}/cJSON.c
+        ${SOURCE_DIR}/socketClient.cpp
 )
 #target_include_directories(client)
 

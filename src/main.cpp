@@ -3,18 +3,12 @@
 #include <iostream>
 #include <string>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-//for socket
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 //user defined
 #include "message.h"
+#include "socketClient.h"
 
-int sockClient;
 
 
 int main(int argc, char * argv[])
@@ -30,25 +24,42 @@ int main(int argc, char * argv[])
     unsigned long serverIp = inet_addr(argv[2]);
     unsigned short serverPort = atoi(argv[3]);
 
+#if defined(_MSC_VER)//win
+    WORD wVersionRequested = MAKEWORD(1,1);
+    WSADATA wsAdata;
+
+    if(0 != WSAStartup(wVersionRequested,&wsAdata))
+    {
+        return -1;
+    }
+
+    if((LOBYTE(wsAdata.wVersion)!=1) || (HIBYTE(wsAdata.wVersion)!=1))
+    {
+        WSACleanup();
+        return -1;
+    }
+#endif
+
 
     /* 创建socket */
-    sockClient = socket(AF_INET,SOCK_STREAM,0);
+    SocketClient client(serverIp, serverPort);
+//    sockClient = socket(AF_INET,SOCK_STREAM,0);
 
-    /* 连接server */
-    struct sockaddr_in addrSrv;
-    bzero( &addrSrv, sizeof(addrSrv) );
-    addrSrv.sin_addr.s_addr = serverIp;
-    addrSrv.sin_family = AF_INET;
-    addrSrv.sin_port = htons(serverPort);
+//    /* 连接server */
+//    struct sockaddr_in addrSrv;
+//    bzero( &addrSrv, sizeof(addrSrv) );
+//    addrSrv.sin_addr.s_addr = serverIp;
+//    addrSrv.sin_family = AF_INET;
+//    addrSrv.sin_port = htons(serverPort);
 
-    printf("try to connect server(%s:%u)\n", inet_ntoa(addrSrv.sin_addr), ntohs(addrSrv.sin_port));
+    printf("try to connect server(%s:%u)\n", inet_ntoa(client.addrSrv_.sin_addr), ntohs(client.addrSrv_.sin_port));
 
-    while(0 != connect(sockClient,(sockaddr*)&addrSrv,sizeof(sockaddr)))
+    while(0 != client.Connect())
     {
         sleep(10);
     };
 
-    printf("connect server success\n", inet_ntoa(addrSrv.sin_addr), ntohs(addrSrv.sin_port));    
+    printf("connect server success\n", inet_ntoa(client.addrSrv_.sin_addr), ntohs(client.addrSrv_.sin_port));
 
     int myTeamId = atoi(argv[1]);
     int myPlayerId[4] = {0};
@@ -58,7 +69,8 @@ int main(int argc, char * argv[])
     snprintf(regMsg, sizeof(regMsg), "{\"msg_name\":\"registration\",\"msg_data\":{\"team_id\":%d,\"team_name\":\"test_demo\"}}", myTeamId);
     char regMsgWithLength[200]={'\0'};
     snprintf(regMsgWithLength, sizeof(regMsgWithLength), "%05d%s", (int)strlen(regMsg), regMsg);
-    send(sockClient, regMsgWithLength, (int)strlen(regMsgWithLength), 0);    
+    client.Send(regMsgWithLength, (int)strlen(regMsgWithLength), 0);
+//    send(sockClient, regMsgWithLength, (int)strlen(regMsgWithLength), 0);
 
     printf("register my info to server success\n");
 
@@ -66,7 +78,9 @@ int main(int argc, char * argv[])
     while(1)
     {
         char buffer[99999] = {'\0'};  
-        int size = recv(sockClient, buffer, sizeof(buffer)-1, 0);
+//        int size = recv(sockClient, buffer, sizeof(buffer)-1, 0);
+        int size = client.Recv(buffer, sizeof(buffer)-1, 0);
+
         if (size > 0)
         {
             //printf("\r\n Round Server Msg: %s\r\n", buffer);
@@ -97,7 +111,8 @@ int main(int argc, char * argv[])
                 const int maxActMsgLenth = 9999;
                 char msgToSend[maxActMsgLenth] = {0};
                 actMsg.PackActMsg(msgToSend,maxActMsgLenth);
-                send(sockClient, msgToSend, (int)strlen(msgToSend), 0);
+                client.Send(msgToSend, (int)strlen(msgToSend), 0);
+//                send(sockClient, msgToSend, (int)strlen(msgToSend), 0);
             }
             else if (0 == strcmp(msgName,"leg_start"))
             {
@@ -117,7 +132,8 @@ int main(int argc, char * argv[])
         /* 如果收到game_over消息, 请跳出循环，进入释放资源程序退出阶段 */
     }
 
-    close(sockClient);
+    //close(sockClient);
+	client.Close();
 
 
     return 0;
