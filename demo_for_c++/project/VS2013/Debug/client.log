@@ -1,0 +1,17 @@
+﻿  main.cpp
+d:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\source\main.cpp(56): warning C4474: printf: 格式字符串中传递的参数太多
+  d:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\source\main.cpp(56): note: 占位符和其参数预计 0 可变参数，但提供的却是 2 参数
+d:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\source\main.cpp(25): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winsock2.h(1830): note: 参见“inet_addr”的声明
+d:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\source\main.cpp(49): warning C4996: 'inet_ntoa': Use inet_ntop() or InetNtop() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winsock2.h(1848): note: 参见“inet_ntoa”的声明
+d:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\source\main.cpp(56): warning C4996: 'inet_ntoa': Use inet_ntop() or InetNtop() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winsock2.h(1848): note: 参见“inet_ntoa”的声明
+  正在生成代码...
+  正在编译...
+  AI.cpp
+  message.cpp
+d:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\source\message.cpp(140): warning C4018: “<”: 有符号/无符号不匹配
+  正在生成代码...
+message.obj : warning LNK4075: 忽略“/EDITANDCONTINUE”(由于“/SAFESEH”规范)
+  client.vcxproj -> D:\lx\华为鲲鹏开发者大赛\试题工程\demo_proj\demo_for_c++\project\VS2013\Debug\client.exe
