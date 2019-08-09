@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(${INCLUDE_DIR})
 
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -ffunction-sections -O0")
+set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11 -Wextra -ffunction-sections -O0")
 
 
 
