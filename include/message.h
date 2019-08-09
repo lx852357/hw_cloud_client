@@ -37,6 +37,23 @@ struct Power {
 	int value;
 };
 
+/*************************
+0：地图可行区域
+1 - 5：分数奖励
+10 - 17：player信息
+8：障碍物
+虫洞id的ascii码：表示虫洞对
+20 - 23表示滑梯的上下左右
+
+map能装25x25个数，用w和h对map做约束
+*/
+struct GameMap {
+	int h;
+	int w;
+	//      Y   X
+	int map[25][25] = {0};
+};
+
 
 enum DIRECT
 {
@@ -84,7 +101,7 @@ public:
     void GetWormhole(int& myTeamId);                     //更新了mWormholes信息
     void GetTunnel(int& myTeamId);                       //更新了mTunnels信息
     void GetCloud(int& myTeamId);                        //协议里应该是没有这个的
-	void GenerateMap();                                  //当所有信息都生成后，用这个生成map信息
+	void GenerateMap(int h, int w);                      //当所有信息都生成后，用这个生成map信息
 private:
 
 public:
@@ -97,6 +114,7 @@ public:
 	std::vector<Point> mMeteors;
 	std::vector<WormholePair> mWormholePairs;
 	std::vector<Tunnel> mTunnels;
+	GameMap mGameMap;
 };
 
 class RoundMsg

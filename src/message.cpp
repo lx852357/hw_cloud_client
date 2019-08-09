@@ -56,11 +56,16 @@ void LegStartMsg::DecodeMessge(int& myTeamId,int myPlayerId[4])
     cJSON* vision = cJSON_GetObjectItem(map,"vision");
     if(NULL == vision) return;
 
+	
+
      GetMeteor(myTeamId);
      GetWormhole(myTeamId);
      GetTunnel(myTeamId);
 	 //GetCloud(myTeamId);
      GetMyTeamInfo(myTeamId,myPlayerId);
+	 GenerateMap(height->valueint, width->valueint);
+
+
      
 
 }
@@ -137,9 +142,9 @@ void LegStartMsg::GetMeteor(int& myTeamId)
         }
     }
 	// test print
-	for (int i = 0; i < mMeteors.size(); i++) {
+	/*for (int i = 0; i < mMeteors.size(); i++) {
 		printf("metros x:%d, y:%d", mMeteors[i].x, mMeteors[i].y);
-	}
+	}*/
 }
 
 void LegStartMsg::GetWormhole(int& myTeamId)
@@ -157,6 +162,7 @@ void LegStartMsg::GetWormhole(int& myTeamId)
 
 	int temp[26][3] = {0};
 	int point_temp[27] = { 0 };//表示哪一个temp里有值，0表示没有，1表示有，最后一位为计数位，判断有值的个数
+	std::cout << "wormlen: " << wormhole_len << std::endl;
     for (int i = 0; i< wormhole_len; ++i)
     {
 		
@@ -172,52 +178,73 @@ void LegStartMsg::GetWormhole(int& myTeamId)
             cJSON* name = cJSON_GetObjectItem(sub_wormhole,"name");
             if(NULL == name) return;
 			char c = *(name->valuestring);
-			int ic = 0;
+			int ic = c;
 			if (c < 'a') {//upper  to lower
 				ic = c + 'a' - 'A';
 			}
-
+			
 			if (point_temp[26] == 0) {
 				temp[0][0] = ic;
 				temp[0][1] = y->valueint;
 				temp[0][2] = x->valueint;
-				point_temp[26] = 1;
+				point_temp[0] = 1;
+				point_temp[26] += 1;
 			}
 			else {
-				bool isAdd = true;//是否添加的标志位
+				bool isAdd = true;
 				for (int i = 0; i < 26; i++) {
-					if (point_temp[i] == 1 && temp[i][0] == ic) {
+					if (point_temp[i] == 1 && temp[i][0] == ic) {//delete same name hole
+						//std::cout << "delete : " << ic << " in " << i << std::endl;
 						WormholePair w;
-						w.name1 = ic;
-						w.name2 = temp[i][0];
-						w.point1.y = y->valueint;
-						w.point2.y = temp[i][1];
-						w.point1.x = x->valueint;
-						w.point2.x = temp[i][2];
+						w.name1 = temp[i][0];
+						w.name2 = ic;
+
+						w.point1.y = temp[i][1];
+						w.point1.x = temp[i][2];
+
+						w.point2.y = y->valueint;
+						w.point2.x = x->valueint;
+
 						mWormholePairs.push_back(w);
-						isAdd = false;
-						//清除对应位
+
+						//置标志位
+						temp[i][0] = 0;
 						point_temp[i] = 0;
 						point_temp[26] -= 1;
+						isAdd = false;
+
+						break;
 					}
 				}
-				if (isAdd) {
+				if (isAdd) {// add 
 					for (int i = 0; i < 26; i++) {
 						if (point_temp[i] == 0) {
+							//std::cout << "you need add : " << ic << " in " << i << std::endl;
 							temp[i][0] = ic;
-							temp[i][1] = y->valueint;
-							temp[i][2] = x->valueint;
 							point_temp[i] = 1;
 							point_temp[26] += 1;
+							isAdd = false;
+
+							temp[i][1] = y->valueint;
+							temp[i][2] = x->valueint;
+							break;
 						}
 					}
 				}
-			}//if (point_temp[26] == 0) {			
+			}
+			for (int i = 0; i < 26; i++) {
+				std::cout << temp[i][0] << "  ";
+			}
+			std::cout << "===========" << point_temp[26] << std::endl;
+			
         }
     }//for
 	for (auto wormholePairs : mWormholePairs) {
 		std::cout << "point1: x: " << wormholePairs.point1.x << ",y: " << wormholePairs.point1.y
-			<< "\t point2:x " << wormholePairs.point2.x << ",y: " << wormholePairs.point2.y << std::endl;
+			<< " name: " << wormholePairs.name1
+			<< "\t point2:x " << wormholePairs.point2.x << ",y: " << wormholePairs.point2.y 
+			<< " name: " << wormholePairs.name2
+			<< std::endl;
 	}
 }
 
@@ -267,11 +294,60 @@ void LegStartMsg::GetTunnel(int& myTeamId)
         }
 		mTunnels.push_back(t);
     }
-	for (auto tunnel : mTunnels) {
+	/*for (auto tunnel : mTunnels) {
 		std::cout << "x: " << tunnel.point.x << ",y: " << tunnel.point.y
 			<< "\tdirect: " << DIRECTLOG[tunnel.direct-20] << std::endl;
-	}
+	}*/
     
+}
+
+
+/*************************
+0：地图可行区域
+1 - 5：分数奖励
+10 - 17：player信息
+8：障碍物
+虫洞id的ascii码：表示虫洞对
+20 - 23表示滑梯的上下左右
+h->y
+w->x
+**************************/
+void LegStartMsg::GenerateMap(int h, int w) {
+
+	//获取宽高
+	mGameMap.h = h;
+	mGameMap.w = w;
+
+	//生成陨石
+	for (auto metoer : mMeteors) {
+		mGameMap.map[metoer.y][metoer.x] = 8;
+	}
+
+	//生成通道
+	for (auto tuunel : mTunnels) {
+		mGameMap.map[tuunel.point.y][tuunel.point.x] = tuunel.direct;
+	}
+
+	//生成虫洞
+	std::cout << "====generated wormhole====" << std::endl;
+
+	for (auto wormhole : mWormholePairs) {
+		mGameMap.map[wormhole.point1.y][wormhole.point1.x] = wormhole.name1;
+		mGameMap.map[wormhole.point2.y][wormhole.point2.x] = wormhole.name2;
+		std::cout << "point1: x: " << wormhole.point1.x << ",y: " << wormhole.point1.y
+			<< " name: " << wormhole.name1
+			<< "\t point2:x " << wormhole.point2.x << ",y: " << wormhole.point2.y
+			<< " name: " << wormhole.name2
+			<< std::endl;
+	}
+
+	std::cout << "====generated map====" << std::endl;
+	for (int i = 0; i < h; i++) {
+		for (int j = 0; j < w; j++) {
+			std::cout << mGameMap.map[i][j] << "  ";
+		}
+		std::cout << std::endl;
+	}
 }
 
 void LegStartMsg::GetCloud(int& myTeamId)
