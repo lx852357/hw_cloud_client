@@ -1,6 +1,5 @@
 ﻿
 #include "message.h"
-#include "string"
 
 
 const char* direct[] = {"up","down","left","right",""};
@@ -36,6 +35,9 @@ void ActMsg::PackActMsg(char* actMsg, int maxMsgLenth)
 }
 
 
+/**
+Leg Start Msg
+*/
 
 void LegStartMsg::DecodeMessge(int& myTeamId,int myPlayerId[4])
 {
@@ -57,7 +59,7 @@ void LegStartMsg::DecodeMessge(int& myTeamId,int myPlayerId[4])
      GetMeteor(myTeamId);
      GetWormhole(myTeamId);
      GetTunnel(myTeamId);
-	 GetCloud(myTeamId);
+	 //GetCloud(myTeamId);
      GetMyTeamInfo(myTeamId,myPlayerId);
      
 
@@ -66,6 +68,7 @@ void LegStartMsg::DecodeMessge(int& myTeamId,int myPlayerId[4])
 void LegStartMsg::GetMyTeamInfo(int& myTeamId,int myPlayerId[4])
 {
     cJSON* msg_data = cJSON_GetObjectItem(root,"msg_data");
+	mTeamInfo.id = myTeamId;
 
     cJSON* teams = cJSON_GetObjectItem(msg_data,"teams");
     if(NULL == teams) return;
@@ -94,9 +97,13 @@ void LegStartMsg::GetMyTeamInfo(int& myTeamId,int myPlayerId[4])
               
 				if (myTeamId == id->valueint)
 				{
+					mTeamInfo.players[j] = playerInfo->valueint;
 					myPlayerId[j] = playerInfo->valueint;
 				}
             }
+			cJSON* force = cJSON_GetObjectItem(teamInfo, "force");
+			if (NULL == force) return;
+			mTeamInfo.force = force->valuestring;
         }
     }
 }
@@ -115,6 +122,7 @@ void LegStartMsg::GetMeteor(int& myTeamId)
     
     for (int i = 0; i< len; ++i)
     {
+		Point p;
         cJSON* sub_meteor = cJSON_GetArrayItem(meteor,i);
         if (NULL != sub_meteor)
         {
@@ -123,8 +131,15 @@ void LegStartMsg::GetMeteor(int& myTeamId)
 
             cJSON* y  = cJSON_GetObjectItem(sub_meteor,"y");
             if(NULL == y) return;
+			p.x = x->valueint;
+			p.y = y->valueint;
+			mMeteors.push_back(p);
         }
     }
+	// test print
+	for (int i = 0; i < mMeteors.size(); i++) {
+		printf("metros x:%d, y:%d", mMeteors[i].x, mMeteors[i].y);
+	}
 }
 
 void LegStartMsg::GetWormhole(int& myTeamId)
@@ -139,9 +154,12 @@ void LegStartMsg::GetWormhole(int& myTeamId)
     if(NULL == wormhole) return;
     
     int wormhole_len = cJSON_GetArraySize(wormhole);
-    
+
+	int temp[26][3] = {0};
+	int point_temp[27] = { 0 };//表示哪一个temp里有值，0表示没有，1表示有，最后一位为计数位，判断有值的个数
     for (int i = 0; i< wormhole_len; ++i)
     {
+		
         cJSON* sub_wormhole = cJSON_GetArrayItem(wormhole,i);
         if (NULL != sub_wormhole)
         {
@@ -153,8 +171,54 @@ void LegStartMsg::GetWormhole(int& myTeamId)
             
             cJSON* name = cJSON_GetObjectItem(sub_wormhole,"name");
             if(NULL == name) return;
+			char c = *(name->valuestring);
+			int ic = 0;
+			if (c < 'a') {//upper  to lower
+				ic = c + 'a' - 'A';
+			}
+
+			if (point_temp[26] == 0) {
+				temp[0][0] = ic;
+				temp[0][1] = y->valueint;
+				temp[0][2] = x->valueint;
+				point_temp[26] = 1;
+			}
+			else {
+				bool isAdd = true;//是否添加的标志位
+				for (int i = 0; i < 26; i++) {
+					if (point_temp[i] == 1 && temp[i][0] == ic) {
+						WormholePair w;
+						w.name1 = ic;
+						w.name2 = temp[i][0];
+						w.point1.y = y->valueint;
+						w.point2.y = temp[i][1];
+						w.point1.x = x->valueint;
+						w.point2.x = temp[i][2];
+						mWormholePairs.push_back(w);
+						isAdd = false;
+						//清除对应位
+						point_temp[i] = 0;
+						point_temp[26] -= 1;
+					}
+				}
+				if (isAdd) {
+					for (int i = 0; i < 26; i++) {
+						if (point_temp[i] == 0) {
+							temp[i][0] = ic;
+							temp[i][1] = y->valueint;
+							temp[i][2] = x->valueint;
+							point_temp[i] = 1;
+							point_temp[26] += 1;
+						}
+					}
+				}
+			}//if (point_temp[26] == 0) {			
         }
-    }
+    }//for
+	for (auto wormholePairs : mWormholePairs) {
+		std::cout << "point1: x: " << wormholePairs.point1.x << ",y: " << wormholePairs.point1.y
+			<< "\t point2:x " << wormholePairs.point2.x << ",y: " << wormholePairs.point2.y << std::endl;
+	}
 }
 
 void LegStartMsg::GetTunnel(int& myTeamId)
@@ -171,7 +235,8 @@ void LegStartMsg::GetTunnel(int& myTeamId)
     int tunnel_len = cJSON_GetArraySize(tunnel);
     
     for (int i = 0; i< tunnel_len; ++i)
-    {
+    {	
+		Tunnel t;
         cJSON* sub_tunnel = cJSON_GetArrayItem(tunnel,i);
         if (NULL != sub_tunnel)
         {
@@ -183,8 +248,29 @@ void LegStartMsg::GetTunnel(int& myTeamId)
 
             cJSON* direction = cJSON_GetObjectItem(sub_tunnel,"direction");
             if(NULL == direction) return;
+
+			t.point.x = x->valueint;
+			t.point.y = y->valueint;
+			char* d = direction->valuestring;
+			if (strcmp(d, "up") == 0) {
+				t.direct = UP;
+			}
+			if (strcmp(d, "down") == 0) {
+				t.direct = DOWN;
+			}
+			if (strcmp(d, "left") == 0) {
+				t.direct = LEFT;
+			}
+			if (strcmp(d, "right") == 0) {
+				t.direct = RIGHT;
+			}			
         }
+		mTunnels.push_back(t);
     }
+	for (auto tunnel : mTunnels) {
+		std::cout << "x: " << tunnel.point.x << ",y: " << tunnel.point.y
+			<< "\tdirect: " << DIRECTLOG[tunnel.direct-20] << std::endl;
+	}
     
 }
 
@@ -215,6 +301,10 @@ void LegStartMsg::GetCloud(int& myTeamId)
     }
     
 }
+
+/**
+Round Msg
+*/
 
 void RoundMsg::DecodePower(cJSON *power)
 {

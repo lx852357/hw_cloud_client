@@ -4,7 +4,8 @@
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <fstream>
+#include <time.h>
 //user defined
 #include "message.h"
 #include "socketClient.h"
@@ -20,7 +21,7 @@ int main(int argc, char * argv[])
     }
 
     /* 提取命令行参数 */
-
+	clock_t start, ends;
     unsigned long serverIp = inet_addr(argv[2]);
     unsigned short serverPort = atoi(argv[3]);
 
@@ -43,14 +44,7 @@ int main(int argc, char * argv[])
 
     /* 创建socket */
     SocketClient client(serverIp, serverPort);
-//    sockClient = socket(AF_INET,SOCK_STREAM,0);
 
-//    /* 连接server */
-//    struct sockaddr_in addrSrv;
-//    bzero( &addrSrv, sizeof(addrSrv) );
-//    addrSrv.sin_addr.s_addr = serverIp;
-//    addrSrv.sin_family = AF_INET;
-//    addrSrv.sin_port = htons(serverPort);
 
     printf("try to connect server(%s:%u)\n", inet_ntoa(client.addrSrv_.sin_addr), ntohs(client.addrSrv_.sin_port));
 
@@ -60,6 +54,9 @@ int main(int argc, char * argv[])
     };
 
     printf("connect server success\n", inet_ntoa(client.addrSrv_.sin_addr), ntohs(client.addrSrv_.sin_port));
+
+	/* 将输出打印到log.txt中 */
+	//std::ofstream log("log.txt");
 
     int myTeamId = atoi(argv[1]);
     int myPlayerId[4] = {0};
@@ -80,11 +77,10 @@ int main(int argc, char * argv[])
         char buffer[99999] = {'\0'};  
 //        int size = recv(sockClient, buffer, sizeof(buffer)-1, 0);
         int size = client.Recv(buffer, sizeof(buffer)-1, 0);
-
+		start = clock();
         if (size > 0)
         {
             //printf("\r\n Round Server Msg: %s\r\n", buffer);
-            
             cJSON *msgBuf = cJSON_Parse(buffer+5);
             if(NULL == msgBuf) continue;
 
@@ -112,6 +108,7 @@ int main(int argc, char * argv[])
                 char msgToSend[maxActMsgLenth] = {0};
                 actMsg.PackActMsg(msgToSend,maxActMsgLenth);
                 client.Send(msgToSend, (int)strlen(msgToSend), 0);
+				printf("send msg\n");
 //                send(sockClient, msgToSend, (int)strlen(msgToSend), 0);
             }
             else if (0 == strcmp(msgName,"leg_start"))
@@ -129,12 +126,14 @@ int main(int argc, char * argv[])
                 break;
             }
         }
+		ends = clock();
+
         /* 如果收到game_over消息, 请跳出循环，进入释放资源程序退出阶段 */
+		std::cout << "delta T: " << ends - start << std::endl;
     }
 
     //close(sockClient);
 	client.Close();
-
 
     return 0;
 }
